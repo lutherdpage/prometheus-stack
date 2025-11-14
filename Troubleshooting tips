@@ -1,0 +1,124 @@
+# 🚧 Troubleshooting Tips for Prometheus Monitoring Stack
+
+Use these common troubleshooting steps when debugging issues in your Prometheus + Grafana setup.
+
+---
+
+## 🔍 Containers Not Starting
+
+* **Run:** `docker compose ps`
+* Check for containers in `Exited` state.
+* View logs: `docker logs <container_name>`
+* Fix YAML formatting issues (most common cause).
+
+---
+
+## 🌐 Cannot Access Prometheus at [http://localhost:9090](http://localhost:9090)
+
+* Make sure Prometheus container is running.
+* Ensure ports are not blocked:
+
+  ```powershell
+  netstat -ano | findstr :9090
+  ```
+* If another process is using port 9090, update the port mapping in `docker-compose.yml`.
+
+---
+
+## 📡 Prometheus Shows "No Data" or Missing Targets
+
+* Check Prometheus targets page:
+
+  * [http://localhost:9090/targets](http://localhost:9090/targets)
+* Ensure your `prometheus.yml` contains the correct internal service names:
+
+  ```yaml
+  - job_name: node_exporter
+    static_configs:
+      - targets: ["node_exporter:9100"]
+  ```
+* Restart Prometheus:
+
+  ```powershell
+  docker compose restart prometheus
+  ```
+
+---
+
+## 📊 Grafana Data Source Not Working
+
+* Verify Prometheus is reachable from Grafana:
+
+  * In Grafana → Data Sources → Test & Save
+* Ensure URL is **[http://prometheus:9090](http://prometheus:9090)**, *not localhost*.
+* Restart Grafana if needed:
+
+  ```powershell
+  docker compose restart grafana
+  ```
+
+---
+
+## 🛑 cadvisor Not Working / Port 8081 Not Loading
+
+* cAdvisor often fails on Windows due to missing Linux cgroups.
+* View logs:
+
+  ```powershell
+  docker logs cadvisor
+  ```
+* If you see:
+  **"mountpoint for cpu not found"** → cAdvisor cannot run on Windows.
+* Fix: Move stack to WSL2 Linux or remove cAdvisor completely.
+
+---
+
+## 🚨 Alerts Not Firing
+
+* Verify alert rules loaded:
+
+  * [http://localhost:9090/rules](http://localhost:9090/rules)
+* Check syntax of `alert.rules.yml`.
+* Reload Prometheus rules:
+
+  ```powershell
+  docker compose exec prometheus kill -HUP 1
+  ```
+
+---
+
+## 🔧 Docker Compose YAML Errors
+
+* YAML requires strict indentation.
+* Use **spaces only** (no tabs).
+* Validate locally:
+
+  ```powershell
+  docker compose config
+  ```
+
+---
+
+## 🧹 Remove Orphaned Containers
+
+If old containers remain after updates:
+
+```powershell
+docker compose down --remove-orphans
+```
+
+---
+
+## 🧱 Reset Entire Project
+
+If everything breaks, reset with:
+
+```powershell
+docker compose down -v
+```
+
+Then rebuild:
+
+```powershell
+docker compose up -d
+```
